@@ -145,3 +145,31 @@ resource "aws_route" "insideroute" {
 data "aws_route_table" "rintable" {
   vpc_id = "${aws_vpc.internal.id}"
 }
+
+##grafana conf
+provider "grafana" {
+  url  = "http://${aws_instance.grafana.public_dns}"
+  auth = "admin:admin"
+}
+
+resource "grafana_data_source" "awswatch" {
+  type = "cloudwatch"
+  name = "awswatch"
+  json_data {
+    default_region = "us-east-1"
+    auth_type      = "keys"
+  }
+}
+
+resource "grafana_dashboard" "dash" {
+  depends_on = ["grafana_data_source.awswatch"]
+  config_json = "${data.template_file.grafanafile.rendered}"
+  
+}
+
+data "template_file" "grafanafile" {
+    template = "${file("grafana.tpl")}"
+    vars {
+        instid = "${aws_instance.wiki.id}"
+    }
+}
